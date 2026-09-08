@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Upload File</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #111;
+            color: #eee;
+        }
+
+        .container {
+            max-width: 500px;
+            margin: 60px auto;
+            padding: 20px;
+            background: #1b1b1b;
+            border: 1px solid #333;
+            border-radius: 10px;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        input[type="text"],
+        input[type="file"],
+        input[type="password"] {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            background: #111;
+            border: 1px solid #333;
+            color: white;
+            border-radius: 6px;
+        }
+
+        input::placeholder {
+            color: #888;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            margin-top: 15px;
+            border: none;
+            border-radius: 6px;
+            background: #4caf50;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        button:hover {
+            background: #43a047;
+        }
+
+        .hint {
+            text-align: center;
+            font-size: 12px;
+            color: #888;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+    <h1>Upload File</h1>
+
+    <form action="/upload" method="post" enctype="multipart/form-data">
+
+        <!--
+        <input type="password" name="pass" placeholder="Password" />
+        -->
+
+        <input type="text" name="filename" placeholder="File name" />
+        <input type="text" name="directory" placeholder="Directory" />
+
+        <input type="file" name="file" required />
+
+        <button type="submit">Upload</button>
+    </form>
+</div>
+
+</body>
+</html>

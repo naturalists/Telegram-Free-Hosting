@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Files</title>
+    <style>
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            font-family: Arial;
+            background: #111;
+            color: #eee;
+            display: flex;
+        }
+
+        .sidebar {
+            width: 240px;
+            background: #1a1a1a;
+            border-right: 1px solid #333;
+            padding: 10px;
+            height: 100vh;
+            overflow-y: auto;
+        }
+
+        .dir {
+            padding: 8px 10px;
+            cursor: pointer;
+            border-radius: 4px;
+            margin: 2px 0;
+            color: #ccc;
+        }
+
+        .dir:hover {
+            background: #2a2a2a;
+        }
+
+        .dir.active {
+            background: #4caf50;
+            color: white;
+        }
+
+        .container {
+            flex: 1;
+            padding: 20px;
+        }
+
+        h2 { text-align: center; }
+
+        .scroll {
+            max-height: 75vh;
+            overflow-y: auto;
+            border: 1px solid #333;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #1b1b1b;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: center;
+            border-bottom: 1px solid #333;
+        }
+
+        th {
+            position: sticky;
+            top: 0;
+            background: #222;
+        }
+
+        tr:hover {
+            background: #2a2a2a;
+        }
+
+        button {
+            padding: 6px 10px;
+            margin: 0 4px;
+            border: none;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+
+        .edit { background: #4caf50; color: white; }
+        .delete { background: #f44336; color: white; }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background: #1b1b1b;
+            padding: 20px;
+            border-radius: 10px;
+            width: 400px;
+            border: 1px solid #333;
+        }
+
+        .modal-content input {
+            width: 100%;
+            margin: 8px 0;
+            padding: 10px;
+            background: #111;
+            border: 1px solid #333;
+            color: white;
+        }
+
+        .modal-actions {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 15px;
+        }
+
+        .save { background: #4caf50; color: white; flex: 1; margin-right: 5px; }
+        .cancel { background: #555; color: white; flex: 1; margin-left: 5px; }
+    </style>
+</head>
+
+<body>
+
+<div class="sidebar" id="sidebar">
+    <div class="dir active" onclick="selectDir(null)">All files</div>
+</div>
+
+<div class="container">
+    <h2>Files</h2>
+
+    <div class="scroll">
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Filename</th>
+                    <th>Filesize</th>
+                    <th>Directory</th>
+                    <th>Uploaded</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="body"></tbody>
+        </table>
+    </div>
+</div>
+
+<div class="modal" id="editModal">
+    <div class="modal-content">
+        <h3>Edit File</h3>
+        <input id="editFilename" placeholder="Filename">
+        <input id="editDirectory" placeholder="Directory">
+        <div class="modal-actions">
+            <button class="save" onclick="saveEdit()">Save</button>
+            <button class="cancel" onclick="closeModal()">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<script>
+let files = [];
+let offset = 0;
+const limit = 50;
+let loading = false;
+let allLoaded = false;
+let editingId = null;
+let currentDirectory = null;
+
+const body = document.getElementById('body');
+const sidebar = document.getElementById('sidebar');
+
+function getPass() {
+    return new URLSearchParams(window.location.search).get('pass') || 'None';
+}
+
+function selectDir(dir) {
+    currentDirectory = dir;
+    offset = 0;
+    files = [];
+    allLoaded = false;
+    document.querySelectorAll('.dir').forEach(d => d.classList.remove('active'));
+    event.target.classList.add('active');
+    load(true);
+}
+
+async function load(reset = true) {
+    if (loading) return;
+
+    loading = true;
+
+    if (reset) {
+        offset = 0;
+        files = [];
+        allLoaded = false;
+        body.innerHTML = '';
+    }
+
+    const url = new URL(`/api/files`, window.location.origin);
+    url.searchParams.set('pass', encodeURIComponent(getPass()));
+    url.searchParams.set('limit', limit);
+    url.searchParams.set('offset', offset);
+
+    if (currentDirectory) {
+        url.searchParams.set('directory', currentDirectory);
+    }
+
+    const res = await fetch(url);
+    const newFiles = await res.json();
+
+    if (newFiles.length < limit) allLoaded = true;
+
+    files = files.concat(newFiles);
+    offset += newFiles.length;
+
+    render();
+    loading = false;
+}
+
+function render() {
+    body.innerHTML = '';
+
+    files.forEach(f => {
+        const row = document.createElement('tr');
+
+        row.onclick = () => {
+            const pass = encodeURIComponent(getPass());
+            window.location.href = `/download?id=${f.id}&pass=${pass}`;
+        };
+
+        row.innerHTML = `
+            <td>${f.id}</td>
+            <td>${f.filename}</td>
+            <td>${f.file_size}</td>
+            <td>${f.directory || '-'}</td>
+            <td>${f.uploaded_at}</td>
+            <td>
+                <button class="edit" onclick="event.stopPropagation(); openEdit(${f.id})">Edit</button>
+                <button class="delete" onclick="event.stopPropagation(); deleteFile(${f.id})">Delete</button>
+            </td>
+        `;
+
+        body.appendChild(row);
+    });
+}
+
+async function loadDirectories() {
+    const res = await fetch(`/api/directories?pass=${encodeURIComponent(getPass())}`);
+    const dirs = await res.json();
+
+    dirs.forEach(d => {
+		if(d != "NONE") {
+			const div = document.createElement('div');
+			div.className = 'dir';
+			div.textContent = d;
+			div.onclick = (e) => selectDir(d, e);
+			sidebar.appendChild(div);
+		}
+    });
+}
+
+function openEdit(id) {
+    const file = files.find(f => f.id === id);
+    if (!file) return;
+
+    editingId = id;
+
+    document.getElementById('editFilename').value = file.filename;
+    document.getElementById('editDirectory').value = file.directory || '';
+    document.getElementById('editModal').style.display = 'flex';
+}
+
+function closeModal() {
+    document.getElementById('editModal').style.display = 'none';
+    editingId = null;
+}
+
+async function saveEdit() {
+    const filename = document.getElementById('editFilename').value;
+    const directory = document.getElementById('editDirectory').value;
+
+    await fetch(`/api/files/${editingId}?pass=${encodeURIComponent(getPass())}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ filename, directory })
+    });
+
+    const file = files.find(f => f.id === editingId);
+    if (file) {
+        file.filename = filename;
+        file.directory = directory;
+    }
+
+    closeModal();
+    render();
+}
+
+async function deleteFile(id) {
+    if (!confirm("Delete this file?")) return;
+
+    await fetch(`/api/files/${id}?pass=${encodeURIComponent(getPass())}`, { method: 'DELETE' });
+
+    files = files.filter(f => f.id !== id);
+    render();
+}
+
+window.onclick = (e) => {
+    if (e.target === document.getElementById('editModal')) {
+        closeModal();
+    }
+};
+
+loadDirectories();
+load();
+</script>
+
+</body>
+</html>
