@@ -6,7 +6,6 @@
 [![Express](https://img.shields.io/badge/Express-web%20server-000000?logo=express&logoColor=white)](https://expressjs.com/)
 [![SQLite](https://img.shields.io/badge/SQLite-metadata-003B57?logo=sqlite&logoColor=white)](https://www.sqlite.org/)
 [![Telegram](https://img.shields.io/badge/Telegram-storage-26A5E4?logo=telegram&logoColor=white)](https://telegram.org/)
-[![License](https://img.shields.io/badge/License-add%20your%20license-blue)](#license)
 
 ## Overview
 
